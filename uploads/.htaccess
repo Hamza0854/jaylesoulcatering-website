@@ -1,0 +1,15 @@
+# Uploaded files are data only: never executed, never sniffed as HTML/JS.
+Options -Indexes -ExecCGI
+<FilesMatch "\.(?i:php[0-9]?|phtml|phar|pl|py|cgi|sh|s?html?|svg|js|htaccess)$">
+  <IfModule mod_authz_core.c>
+    Require all denied
+  </IfModule>
+  <IfModule !mod_authz_core.c>
+    Order allow,deny
+    Deny from all
+  </IfModule>
+</FilesMatch>
+<IfModule mod_headers.c>
+  Header set X-Content-Type-Options "nosniff"
+  Header set Content-Security-Policy "default-src 'none'; img-src 'self'; media-src 'self'; sandbox"
+</IfModule>

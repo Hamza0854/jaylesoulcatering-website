@@ -1,0 +1,13 @@
+# secrets
+app/config.php
+# runtime data
+storage/pending/*
+storage/logs/*
+storage/*.lock
+uploads/testimonials/*
+!storage/pending/.gitkeep
+!storage/logs/.gitkeep
+!uploads/testimonials/.gitkeep
+
+# local editor / tooling
+.claude/

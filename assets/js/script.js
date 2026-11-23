@@ -1,10 +1,29 @@
-/* CHEF JAY LeSOUL CATERING — script.js (v2) */
+/* CHEF JAY LeSOUL CATERING — script.js */
 (function () {
   'use strict';
   const $ = (s, c = document) => c.querySelector(s);
   const $$ = (s, c = document) => [...c.querySelectorAll(s)];
 
-  /* header / progress / back-to-top */
+  /* header shadow, progress bar, back-to-top */
+    /* mobile menu toggle */
+    const nav = $('#nav'), toggle = $('#navToggle');
+    if (nav && toggle) {
+      const backdrop = document.createElement('div');
+      backdrop.className = 'nav-backdrop';
+      document.body.appendChild(backdrop);
+      const setNav = open => {
+        nav.classList.toggle('open', open);
+        backdrop.classList.toggle('show', open);
+        document.body.classList.toggle('nav-lock', open);
+        toggle.setAttribute('aria-expanded', String(open));
+        toggle.setAttribute('aria-label', open ? 'Close menu' : 'Open menu');
+      };
+      toggle.addEventListener('click', e => { e.preventDefault(); setNav(!nav.classList.contains('open')); });
+      backdrop.addEventListener('click', () => setNav(false));
+      $$('a', nav).forEach(a => a.addEventListener('click', () => setNav(false)));
+      addEventListener('keydown', e => e.key === 'Escape' && setNav(false));
+      addEventListener('resize', () => innerWidth > 767 && setNav(false));
+    }
   const header = $('#header'), progress = $('#progress'), toTop = $('#toTop');
   const onScroll = () => {
     const y = window.scrollY;
@@ -15,60 +34,36 @@
   addEventListener('scroll', onScroll, { passive: true }); onScroll();
   toTop && toTop.addEventListener('click', e => { e.preventDefault(); scrollTo({ top: 0, behavior: 'smooth' }); });
 
-  /* mobile navigation */
-  const nav = $('#nav'), toggle = $('#navToggle');
-  if (nav && toggle) {
-    const backdrop = document.createElement('div');
-    backdrop.className = 'nav-backdrop';
-    document.body.appendChild(backdrop);
-    const setNav = open => {
-      nav.classList.toggle('open', open);
-      backdrop.classList.toggle('show', open);
-      document.body.classList.toggle('nav-lock', open);
-      toggle.setAttribute('aria-expanded', String(open));
-      toggle.setAttribute('aria-label', open ? 'Close menu' : 'Open menu');
-    };
-    toggle.addEventListener('click', e => { e.preventDefault(); e.stopPropagation(); setNav(!nav.classList.contains('open')); });
-    backdrop.addEventListener('click', () => setNav(false));
-    $$('a', nav).forEach(a => a.addEventListener('click', () => setNav(false)));
-    addEventListener('keydown', e => e.key === 'Escape' && setNav(false));
-    addEventListener('resize', () => innerWidth > 991 && setNav(false));
-  }
-
   /* active nav link */
-  const here = (location.pathname.split('/').pop() || 'index.html').toLowerCase();
-  $$('.nav-list a').forEach(a => { if (a.getAttribute('href').toLowerCase() === here) a.classList.add('active'); });
+  /* works with clean URLs (/about) and old ones (/about.html) */
+  const norm = p => (p.toLowerCase().replace(/\/+$/, '').replace(/\.html$/, '').replace(/(^|\/)index$/, '')) || '/';
+  const here = norm(location.pathname);
+  $$('.nav-list a').forEach(a => { if (!a.hash && norm(a.pathname) === here) a.classList.add('active'); });
 
   /* reveal on scroll */
   const reveals = $$('.reveal');
   if ('IntersectionObserver' in window) {
-    const io = new IntersectionObserver(entries => {
-      entries.forEach(en => {
-        if (!en.isIntersecting) return;
-        const el = en.target; setTimeout(() => el.classList.add('in'), +el.dataset.delay || 0); io.unobserve(el);
-      });
-    }, { threshold: 0.12, rootMargin: '0px 0px -40px 0px' });
+    const io = new IntersectionObserver(entries => entries.forEach(en => {
+      if (!en.isIntersecting) return;
+      const el = en.target; setTimeout(() => el.classList.add('in'), +el.dataset.delay || 0); io.unobserve(el);
+    }), { threshold: 0.12, rootMargin: '0px 0px -40px 0px' });
     reveals.forEach(el => io.observe(el));
   } else reveals.forEach(el => el.classList.add('in'));
 
-  /* hero mosaic parallax (desktop only) */
-  const mosaic = $('.hero-mosaic');
-  if (mosaic && matchMedia('(hover:hover) and (min-width:992px)').matches) {
-    const tiles = $$('.tri', mosaic);
-    addEventListener('mousemove', e => {
-      const x = e.clientX / innerWidth - .5, y = e.clientY / innerHeight - .5;
-      tiles.forEach((t, i) => { const d = (i % 3 + 1) * 4; t.style.transform = `translate(${x * d}px, ${y * d}px)`; });
-    }, { passive: true });
-  }
-
-  /* gallery filter + lightbox */
+  /* gallery: blurred backdrops, filters, lightbox */
   const gallery = $('#gallery');
   if (gallery) {
-    const items = $$('.g-item', gallery);
+    const all = $$('.g-item', gallery), items = all.filter(a => !a.classList.contains('g-video'));
+    items.forEach(a => {
+      const bg = document.createElement('div');
+      bg.className = 'g-bg';
+      bg.style.backgroundImage = `url("${a.getAttribute('href')}")`;
+      a.prepend(bg);
+    });
     $$('.filter').forEach(btn => btn.addEventListener('click', () => {
       $$('.filter').forEach(b => b.classList.remove('active')); btn.classList.add('active');
       const f = btn.dataset.filter;
-      items.forEach((it, i) => {
+      all.forEach((it, i) => {
         const show = f === 'all' || it.dataset.cat === f;
         it.style.transition = 'none'; it.classList.toggle('hide', !show);
         if (show) { it.style.opacity = 0; it.style.transform = 'translateY(16px)';
@@ -94,28 +89,112 @@
     lb.addEventListener('touchend', e => { const dx = e.changedTouches[0].clientX - sx; if (Math.abs(dx) > 50) show(idx + (dx < 0 ? 1 : -1)); });
   }
 
-  /* contact form → opens email app pre-filled */
+
+
+
+  /* only one testimonial video plays at a time */
+  document.addEventListener('play', e => {
+    if (e.target.tagName !== 'VIDEO' || e.target.muted) return;
+    $$('video').forEach(v => { if (v !== e.target && !v.muted && !v.paused) v.pause(); });
+  }, true);
+
+  /* ===== CONTACT PAGE: tabs, order form → Google Sheet, event form → email ===== */
+  const ORDER_URL = 'https://script.google.com/macros/s/AKfycbyAmnpxOhucTVsSM_3nm49IregWGS-iR_gLw_HXCfJFFwVCCEcatkC_0eh4hUfm0ddX1w/exec';   // ends in /exec
+  const PRICE = 5;
+
+  const validate = form => {
+    let ok = true;
+    $$('[required]', form).forEach(f => {
+      const valid = f.type === 'email' ? /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(f.value)
+                  : f.type === 'tel'   ? f.value.replace(/\D/g, '').length >= 10
+                  : f.value.trim() !== '';
+      const box = f.closest('.field');
+      box && box.classList.toggle('error', !valid);
+      if (!valid) ok = false;
+    });
+    return ok;
+  };
+  $$('.f-panel').forEach(form =>
+    $$('input,select,textarea', form).forEach(f => f.addEventListener('input', () => { const b = f.closest('.field'); b && b.classList.remove('error'); }))
+  );
+
+  /* tabs — contact.html#order opens the order form */
+  const tabs = $$('.f-tab');
+  if (tabs.length) {
+    const showTab = name => tabs.forEach(t => {
+      const on = t.dataset.tab === name;
+      t.classList.toggle('active', on);
+      t.setAttribute('aria-selected', String(on));
+      $('#' + t.getAttribute('aria-controls')).hidden = !on;
+    });
+    tabs.forEach(t => t.addEventListener('click', () => showTab(t.dataset.tab)));
+    const fromUrl = () => {
+      if (location.hash === '#event' || new URLSearchParams(location.search).has('type')) showTab('event');
+      else if (location.hash === '#order') showTab('order');
+    };
+    fromUrl(); addEventListener('hashchange', fromUrl);
+  }
+
+  /* order form */
+  const orderForm = $('#orderForm');
+  if (orderForm) {
+    const qty = $('#qty'), total = $('#orderTotal'), addrField = $('#addressField'), addr = $('#o-address');
+    const readQty = () => Math.min(50, Math.max(1, parseInt(qty.value, 10) || 1));
+    const updateTotal = () => { total.textContent = '$' + (readQty() * PRICE).toFixed(2); };
+    const fixQty = () => { qty.value = readQty(); updateTotal(); };
+    $$('.qty button', orderForm).forEach(b => b.addEventListener('click', () => { qty.value = readQty() + +b.dataset.step; fixQty(); }));
+    qty.addEventListener('input', updateTotal);
+    qty.addEventListener('change', fixQty);
+
+    const setMethod = () => {
+      const delivery = orderForm.elements.method.value === 'delivery';
+      addrField.hidden = !delivery;
+      addr.required = delivery;
+      if (!delivery) addrField.classList.remove('error');
+    };
+    $$('input[name="method"]', orderForm).forEach(r => r.addEventListener('change', setMethod));
+    setMethod();
+
+    orderForm.addEventListener('submit', async e => {
+      e.preventDefault();
+      fixQty();
+      if (!validate(orderForm)) return;
+      const btn = $('.btn-send', orderForm), label = btn.innerHTML;
+      const done = $('#orderSuccess'), fail = $('#orderError');
+      done.classList.remove('show'); fail.classList.remove('show');
+      btn.disabled = true; btn.textContent = 'Sending…';
+      try {
+        const res = await fetch(ORDER_URL, { method: 'POST', body: new URLSearchParams(new FormData(orderForm)) });
+        const data = await res.json();
+        if (!data.ok) throw new Error('rejected');
+        $('#orderId').textContent = data.orderId;
+        orderForm.reset(); fixQty(); setMethod();
+        done.classList.add('show');
+        done.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      } catch (err) {
+        fail.classList.add('show');
+      } finally {
+        btn.disabled = false; btn.innerHTML = label;
+      }
+    });
+  }
+
+  /* event form → opens email app pre-filled */
   const form = $('#contactForm');
   if (form) {
     const pre = new URLSearchParams(location.search).get('type'), sel = $('#type');
     if (pre && sel && [...sel.options].some(o => o.value === pre)) sel.value = pre;
     form.addEventListener('submit', e => {
-      e.preventDefault(); let ok = true;
-      $$('[required]', form).forEach(f => {
-        const valid = f.type === 'email' ? /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(f.value) : f.value.trim() !== '';
-        f.closest('.field').classList.toggle('error', !valid); if (!valid) ok = false;
-      });
-      if (!ok) return;
+      e.preventDefault();
+      if (!validate(form)) return;
       const d = Object.fromEntries(new FormData(form)), typeText = sel.options[sel.selectedIndex].text;
       const subject = encodeURIComponent(`Event Inquiry — ${typeText} — ${d.name}`);
       const body = encodeURIComponent(`Name: ${d.name}\nEmail: ${d.email}\nPhone: ${d.phone}\nEvent Type: ${typeText}\n\nMessage:\n${d.message}`);
-      location.href = `mailto:hello@chefjaylesoul.com?subject=${subject}&body=${body}`;
+      location.href = `mailto:chef@jaylesoulcatering.com?subject=${subject}&body=${body}`;
       $('#formSuccess').classList.add('show'); form.reset();
     });
-    $$('input,select,textarea', form).forEach(f => f.addEventListener('input', () => f.closest('.field').classList.remove('error')));
   }
 
-  /* footer year + reliable muted autoplay */
-  const yr = $('#year'); if (yr) yr.textContent = new Date().getFullYear();
+  /* reliable muted autoplay */
   $$('video[autoplay]').forEach(v => { v.muted = true; const p = v.play(); p && p.catch(() => {}); });
 })();
