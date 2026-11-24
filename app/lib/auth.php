@@ -99,7 +99,7 @@ function require_user(): array
     return $u;
 }
 
-/* one-time tokens for email verification / password reset (only the SHA-256 is stored) */
+/* one-time tokens for password reset (only the SHA-256 is stored) */
 function token_create(int $userId, string $type, int $ttlSeconds): string
 {
     $raw = bin2hex(random_bytes(32));
@@ -121,15 +121,6 @@ function token_find(string $raw, string $type): ?array
 function token_delete_all(int $userId, string $type): void
 {
     q('DELETE FROM user_tokens WHERE user_id = ? AND type = ?', [$userId, $type]);
-}
-
-function send_verification_email(array $u): void
-{
-    $token = token_create((int) $u['id'], 'verify', 48 * 3600);
-    $link = rtrim(cfg('site_url'), '/') . '/account/verify?token=' . $token;
-    send_mail($u['email'], 'Confirm your email — Chef Jay LeSoul Catering',
-        "Hi {$u['name']},\n\nThanks for signing up! Please confirm your email address by opening this link:\n\n$link\n\n"
-        . "The link works for 48 hours. If you didn't create an account, you can ignore this email.\n\n— Chef Jay LeSoul Catering");
 }
 
 /* =========================================================

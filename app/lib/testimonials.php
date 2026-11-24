@@ -189,7 +189,7 @@ function testimonial_card(array $t, int $delay = 0): string
 
     $meta = array_filter([$t['author_location'], EVENT_TYPES[$t['event_type'] ?? ''] ?? null, fmt_date($t['created_at'])]);
     $h .= '<div class="t-who"><span class="t-av">' . e(initials($t['author_name'])) . '</span><div>'
-        . '<b>' . e($t['author_name']) . ($t['source'] === 'customer' ? ' <span class="t-verified" title="Email-verified customer">✔ Verified</span>' : '') . '</b>'
+        . '<b>' . e($t['author_name']) . ($t['source'] === 'customer' ? ' <span class="t-verified" title="Posted from a customer account">✔ Customer</span>' : '') . '</b>'
         . '<small>' . e(implode(' · ', $meta)) . '</small></div></div>';
     if ($t['embed_provider'] === 'facebook') {
         $h .= '<a class="t-src" href="' . e($t['embed_url']) . '" target="_blank" rel="noopener">Watch on Facebook <svg class="chev"><use href="#chev"/></svg></a>';

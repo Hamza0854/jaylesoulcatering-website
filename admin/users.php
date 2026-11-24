@@ -41,13 +41,12 @@ admin_start('Customers', $admin, 'users');
 </div>
 <div class="adm-table-wrap">
 <table class="adm-table">
-  <thead><tr><th>Name</th><th>Email</th><th>Verified</th><th>Reviews</th><th>Joined</th><th>Last login</th><th>Status</th><th></th></tr></thead>
+  <thead><tr><th>Name</th><th>Email</th><th>Reviews</th><th>Joined</th><th>Last login</th><th>Status</th><th></th></tr></thead>
   <tbody>
   <?php foreach ($users as $u): ?>
     <tr>
       <td><?= e($u['name']) ?></td>
       <td><?= e($u['email']) ?></td>
-      <td><?= $u['email_verified_at'] ? '✔' : '<span class="muted">no</span>' ?></td>
       <td><?= (int) $u['reviews'] ?></td>
       <td><?= e(fmt_date($u['created_at'])) ?></td>
       <td><?= e(fmt_date($u['last_login_at'])) ?: '—' ?></td>
@@ -64,7 +63,7 @@ admin_start('Customers', $admin, 'users');
       </td>
     </tr>
   <?php endforeach ?>
-  <?php if (!$users): ?><tr><td colspan="8" class="muted">No customers found.</td></tr><?php endif ?>
+  <?php if (!$users): ?><tr><td colspan="7" class="muted">No customers found.</td></tr><?php endif ?>
   </tbody>
 </table>
 </div>

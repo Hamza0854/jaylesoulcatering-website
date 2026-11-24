@@ -4,7 +4,7 @@
  * app/config.php holds passwords: it is git-ignored and blocked from the web.
  */
 return [
-    // Full site address, no trailing slash. Used in emails (verify / reset links).
+    // Full site address, no trailing slash. Used in emails (password reset links).
     'site_url' => 'https://jaylesoulcatering.com',
 
     // 'production' hides PHP errors from visitors. Use 'local' on your PC only.

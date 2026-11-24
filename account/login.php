@@ -6,7 +6,6 @@ if (current_user()) redirect($next);
 
 $error = '';
 $email = '';
-$unverified = false;
 
 if (is_post()) {
     csrf_check();
@@ -27,16 +26,6 @@ if (is_post()) {
             throw new UserError('Wrong email or password.');
         }
         if ($u['status'] !== 'active') throw new UserError('This account has been suspended. Please contact us if you think this is a mistake.');
-
-        if (!$u['email_verified_at']) {
-            $unverified = true;
-            if (!empty($_POST['resend']) && rate_limit('resend:' . $u['id'], 3, 3600)) {
-                send_verification_email($u);
-                $_SESSION['check_email'] = $u['email'];
-                redirect('/account/check-email');
-            }
-            throw new UserError('Please confirm your email first — open the link we emailed you.');
-        }
         rate_clear($emKey);
         maybe_rehash('users', $u, $pw);
         login_user($u);
@@ -59,9 +48,6 @@ app_hero('Reviews', 'LOG <em>IN</em>', 'Welcome back');
       <div class="field"><input type="email" name="email" id="email" placeholder=" " autocomplete="email" required value="<?= e($email) ?>"><label for="email">Email Address</label></div>
       <div class="field"><input type="password" name="password" id="password" placeholder=" " autocomplete="current-password" required><label for="password">Password</label>
         <button type="button" class="pw-toggle" data-pw="password" aria-label="Show password">Show</button></div>
-      <?php if ($unverified): ?>
-        <label class="check"><input type="checkbox" name="resend" value="1"><span>Email me a new confirmation link</span></label>
-      <?php endif ?>
       <?= bot_fields('login') ?>
       <button type="submit" class="btn-red btn-send">Log In <svg class="chev"><use href="#chev"/></svg></button>
       <p class="app-alt"><a href="/account/forgot">Forgot your password?</a></p>

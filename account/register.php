@@ -22,24 +22,17 @@ if (is_post()) {
         elseif (!hash_equals($pw, $pw2)) $errors['password2'] = 'The passwords do not match.';
         if (empty($_POST['terms'])) $errors['terms'] = 'Please agree to the review guidelines.';
 
+        if (!$errors && q('SELECT id FROM users WHERE email = ?', [$old['email']])->fetch()) {
+            $errors['email'] = 'An account with this email already exists. Please log in instead.';
+        }
         if (!$errors) {
-            $existing = q('SELECT * FROM users WHERE email = ?', [$old['email']])->fetch();
-            if ($existing) {
-                // Don't reveal that the email is registered: tell the owner by email instead.
-                if (!$existing['email_verified_at']) send_verification_email($existing);
-                else send_mail($existing['email'], 'Someone tried to sign up with your email',
-                    "Hi {$existing['name']},\n\nSomeone (maybe you) tried to create a new account with this email address. "
-                    . "You already have an account — log in here:\n" . rtrim(cfg('site_url'), '/') . "/account/login\n\n"
-                    . "Forgot your password? " . rtrim(cfg('site_url'), '/') . "/account/forgot\n");
-            } else {
-                q('INSERT INTO users (name, email, password_hash, created_at) VALUES (?,?,?,?)',
-                  [$old['name'], $old['email'], hash_password($pw), now()]);
-                $u = q('SELECT * FROM users WHERE id = ?', [db()->lastInsertId()])->fetch();
-                send_verification_email($u);
-                audit('user', (int) $u['id'], 'register', $u['email']);
-            }
-            $_SESSION['check_email'] = $old['email'];
-            redirect('/account/check-email');
+            q('INSERT INTO users (name, email, password_hash, created_at) VALUES (?,?,?,?)',
+              [$old['name'], $old['email'], hash_password($pw), now()]);
+            $u = q('SELECT * FROM users WHERE id = ?', [db()->lastInsertId()])->fetch();
+            audit('user', (int) $u['id'], 'register', $u['email']);
+            login_user($u);
+            flash('success', 'Welcome, ' . $u['name'] . '! Your account is ready — share your experience below.');
+            redirect('/account/submit');
         }
     } catch (UserError $e) {
         $errors['form'] = $e->getMessage();

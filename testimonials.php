@@ -59,7 +59,7 @@ page_start('Testimonials & Reviews | Chef Jay LeSoul Catering — Cleveland, OH'
             <div class="r-top"><div><?= stars_html(5, 'r-stars') ?><small>Be the first to leave a star rating!</small></div></div>
           <?php endif ?>
           <a href="<?= e($writeUrl) ?>" class="btn-red r-write">Write a Review <svg class="chev"><use href="#chev"/></svg></a>
-          <?php if (!$user): ?><p class="r-note">Free account · email verified · approved by our team</p><?php endif ?>
+          <?php if (!$user): ?><p class="r-note">Free account · every review approved by our team</p><?php endif ?>
         </aside>
       </div>
 
