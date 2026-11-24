@@ -40,7 +40,7 @@ admin_start('Reviews', $admin, 'reviews');
 
 <div class="adm-list">
 <?php foreach ($rows as $t): ?>
-  <article class="adm-card st-<?= e($t['status']) ?>">
+  <article class="adm-card is-<?= e($t['status']) ?>">
     <div class="adm-card-main">
       <div class="adm-meta">
         <?= status_badge($t['status']) ?>

@@ -1,7 +1,7 @@
 <?php
 /* Shared header/footer for the PHP pages (same look as the static .html pages). */
 
-const ASSET_V = '4';
+const ASSET_V = '5';
 
 function page_start(string $title, string $bodyClass, array $opt = []): void
 {

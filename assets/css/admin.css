@@ -37,7 +37,7 @@ code{font-family:ui-monospace,Consolas,monospace;color:var(--gold-l)}
 .adm-btn:hover{border-color:var(--gold);filter:brightness(1.15)}
 .adm-btn-red{border:0;color:#fff;background:linear-gradient(180deg,#dc1331,#9c0a21)}
 .adm-btn-gold{border:0;color:#1a1200;background:var(--goldgrad)}
-.adm-btn-green{border:0;color:#062b12;background:#5fd38a}
+.adm-btn-green{border:0;color:#1a1200;background:var(--goldgrad)}
 .adm-btn-danger{color:#ff8a9c;border-color:rgba(200,16,46,.5)}
 
 .adm-tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px;border-bottom:1px solid var(--line)}
@@ -48,7 +48,7 @@ code{font-family:ui-monospace,Consolas,monospace;color:var(--gold-l)}
 
 .adm-list{display:grid;gap:14px}
 .adm-card{display:grid;grid-template-columns:1fr 220px;gap:18px;padding:18px;background:var(--card);border-radius:8px;box-shadow:inset 0 0 0 1px var(--line);border-left:4px solid #555}
-.adm-card.st-pending{border-left-color:#f5c542}.adm-card.st-approved{border-left-color:#5fd38a}.adm-card.st-rejected{border-left-color:#8a0a1d}
+.adm-card.is-pending{border-left-color:#f3d77a}.adm-card.is-approved{border-left-color:#d4af37}.adm-card.is-rejected{border-left-color:#c8102e}
 .adm-meta{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:8px}
 .adm-meta small{color:#888}
 .tag{padding:1px 8px;border-radius:20px;font-size:12px;background:#262626;color:#ccc}
@@ -73,7 +73,7 @@ code{font-family:ui-monospace,Consolas,monospace;color:var(--gold-l)}
 .mini-stars .on,.t-stars .on{color:#f5c542}.mini-stars .off,.t-stars .off{color:#444}
 .mini-stars .half{background:linear-gradient(90deg,#f5c542 50%,#444 50%);-webkit-background-clip:text;background-clip:text;color:transparent}
 .badge-st{display:inline-block;padding:2px 10px;border-radius:20px;font-family:'Oswald',sans-serif;font-size:12px;letter-spacing:.06em;text-transform:uppercase;white-space:nowrap}
-.st-pending{color:#1a1200;background:#f5c542}.st-approved{color:#062b12;background:#5fd38a}.st-rejected{color:#fff;background:#8a0a1d}.st-featured{color:#1a1200;background:var(--goldgrad)}
+.st-pending{color:var(--gold-l);background:transparent;box-shadow:inset 0 0 0 1px var(--gold)}.st-approved{color:#1a1200;background:var(--goldgrad)}.st-rejected{color:#fff;background:linear-gradient(180deg,#dc1331,#9c0a21)}.st-featured{color:var(--gold-l);background:#1d1d1d;box-shadow:inset 0 0 0 1px var(--gold)}
 
 /* forms */
 .adm-form{display:grid;gap:14px}
