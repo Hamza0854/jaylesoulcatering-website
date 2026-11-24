@@ -127,3 +127,10 @@ code{font-family:ui-monospace,Consolas,monospace;color:var(--gold-l)}
   .adm-media video{width:100%}
   .adm-head .adm-btn,.adm-search{margin-left:0}
 }
+
+/* password show / hide */
+.pw-wrap{position:relative;display:block}
+.pw-wrap input{padding-right:46px!important}
+.pw-eye{position:absolute;right:6px;top:50%;transform:translateY(-50%);display:grid;place-items:center;width:34px;height:34px;border:0;border-radius:6px;color:#aaa;background:none}
+.pw-eye:hover{color:var(--gold-l);background:rgba(212,175,55,.12)}
+.pw-eye svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}

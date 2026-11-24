@@ -115,9 +115,6 @@ function require_admin(bool $setupPage = false): array
     if (!$a) {
         redirect('/admin/login');
     }
-    if (!$setupPage && cfg('admin_require_2fa', true) && !(int) $a['totp_enabled']) {
-        flash('info', 'Set up two-factor authentication to continue.');
-        redirect('/admin/security');
-    }
+    // 2FA is optional: admins can turn it on from the Security page.
     return $a;
 }
