@@ -1036,3 +1036,16 @@ a.filter{display:inline-flex;align-items:center}
   .t-thumbs a{width:40px;height:40px}
   .t-fb svg{width:46px;height:46px;padding:12px}.t-fb b{font-size:16px}.t-fb small{font-size:16px}
 }
+
+/* testimonials on desktop: smaller cards */
+@media (min-width:768px){
+  .testi-all .t-grid{grid-template-columns:repeat(4,minmax(0,1fr));gap:calc(14*var(--u))}
+  .testi:not(.testi-all) .t-grid{grid-template-columns:repeat(3,minmax(0,calc(250*var(--u))));justify-content:start}
+  .t-body{padding:calc(14*var(--u)) calc(16*var(--u)) calc(16*var(--u))}
+  .t-body p{font-size:calc(13*var(--u))}
+  .t-who{margin-top:calc(10*var(--u));padding-top:calc(10*var(--u))}
+  .t-av{width:calc(32*var(--u));height:calc(32*var(--u));font-size:calc(14*var(--u))}
+  .t-who b{font-size:calc(12.5*var(--u))}.t-who small{font-size:calc(11*var(--u))}
+}
+/* video-only cards: no empty line above the name */
+.t-body>.t-who:first-child{margin-top:0;padding-top:0;border-top:0}
