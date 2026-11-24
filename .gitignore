@@ -11,3 +11,6 @@ uploads/testimonials/*
 
 # local editor / tooling
 .claude/
+
+# one-time installer (keep locally, never deploy)
+install.php
