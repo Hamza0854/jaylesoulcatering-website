@@ -43,6 +43,7 @@ final class UserError extends RuntimeException {}
 
 send_security_headers();
 start_session();
+ensure_schema();
 
 set_exception_handler(function (Throwable $e) {
     error_log((string) $e);

@@ -13,6 +13,31 @@ const EVENT_TYPES = [
 const KINDS = ['video' => 'Videos', 'photo' => 'Photos', 'text' => 'Reviews'];
 const PER_PAGE = 12;
 
+/* ---------- database upgrade (runs once, then remembers via a lock file) ---------- */
+
+/** Brings a database created from an older schema.sql up to date: adds author_email + blocked_emails. */
+function ensure_schema(): void
+{
+    $flag = ROOT . '/storage/schema-v2.lock';
+    if (is_file($flag)) return;
+    try {
+        $cols = array_column(q('SHOW COLUMNS FROM testimonials')->fetchAll(), 'Field');
+    } catch (PDOException) {
+        return;   // tables not created yet (fresh install)
+    }
+    if (!in_array('author_email', $cols, true)) {
+        db()->exec('ALTER TABLE testimonials ADD COLUMN author_email VARCHAR(190) NULL AFTER author_name, ADD KEY idx_email (author_email)');
+    }
+    db()->exec('CREATE TABLE IF NOT EXISTS blocked_emails (email VARCHAR(190) NOT NULL PRIMARY KEY, reason VARCHAR(255) NULL, created_at DATETIME NOT NULL)
+                ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci');
+    @file_put_contents($flag, now());
+}
+
+function email_blocked(string $email): bool
+{
+    return (bool) q('SELECT 1 FROM blocked_emails WHERE email = ?', [$email])->fetchColumn();
+}
+
 /* ---------- video links (YouTube / Facebook) ---------- */
 
 /** Turns a pasted YouTube/Facebook link into ['provider','url'] or throws UserError. */
@@ -189,7 +214,7 @@ function testimonial_card(array $t, int $delay = 0): string
 
     $meta = array_filter([$t['author_location'], EVENT_TYPES[$t['event_type'] ?? ''] ?? null, fmt_date($t['created_at'])]);
     $h .= '<div class="t-who"><span class="t-av">' . e(initials($t['author_name'])) . '</span><div>'
-        . '<b>' . e($t['author_name']) . ($t['source'] === 'customer' ? ' <span class="t-verified" title="Posted from a customer account">✔ Customer</span>' : '') . '</b>'
+        . '<b>' . e($t['author_name']) . ($t['source'] === 'customer' ? ' <span class="t-verified" title="Review sent by a customer">✔ Customer</span>' : '') . '</b>'
         . '<small>' . e(implode(' · ', $meta)) . '</small></div></div>';
     if ($t['embed_provider'] === 'facebook') {
         $h .= '<a class="t-src" href="' . e($t['embed_url']) . '" target="_blank" rel="noopener">Watch on Facebook <svg class="chev"><use href="#chev"/></svg></a>';

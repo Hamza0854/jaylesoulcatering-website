@@ -10,7 +10,7 @@ function admin_start(string $title, ?array $admin, string $active = ''): void
         try { $pending = (int) q("SELECT COUNT(*) FROM testimonials WHERE status = 'pending'")->fetchColumn(); } catch (Throwable) {}
     }
     $links = ['reviews' => ['/admin', 'Reviews'], 'add' => ['/admin/edit', 'Add Testimonial'],
-              'users' => ['/admin/users', 'Customers'], 'security' => ['/admin/security', 'Security']];
+              'users' => ['/admin/users', 'Reviewers'], 'security' => ['/admin/security', 'Security']];
     ?>
 <!DOCTYPE html>
 <html lang="en">

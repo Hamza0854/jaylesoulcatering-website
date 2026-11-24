@@ -7,7 +7,7 @@ csrf_check();
 
 $id = (int) ($_POST['id'] ?? 0);
 $do = (string) ($_POST['do'] ?? '');
-$t = q('SELECT t.*, u.email AS user_email, u.name AS user_name FROM testimonials t LEFT JOIN users u ON u.id = t.user_id WHERE t.id = ?', [$id])->fetch();
+$t = q('SELECT * FROM testimonials WHERE id = ?', [$id])->fetch();
 if (!$t) {
     flash('error', 'That testimonial no longer exists.');
     redirect('/admin');
@@ -18,9 +18,9 @@ switch ($do) {
     case 'approve':
         media_set_public($id, true);
         q("UPDATE testimonials SET status = 'approved', admin_note = NULL, reviewed_at = ?, reviewed_by = ? WHERE id = ?", [now(), $admin['id'], $id]);
-        if ($t['status'] === 'pending' && $t['user_email']) {
-            send_mail($t['user_email'], 'Your review is live — thank you!',
-                "Hi {$t['user_name']},\n\nThank you for your review! It's now published on our website:\n"
+        if ($t['status'] === 'pending' && $t['author_email'] && !str_ends_with($t['author_email'], '@example.com')) {
+            send_mail($t['author_email'], 'Your review is live — thank you!',
+                "Hi {$t['author_name']},\n\nThank you for your review! It's now published on our website:\n"
                 . rtrim(cfg('site_url'), '/') . "/testimonials\n\n— Chef Jay LeSoul Catering");
         }
         flash('success', "Testimonial #$id is now published.");

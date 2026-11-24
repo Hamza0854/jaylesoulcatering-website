@@ -1,5 +1,5 @@
 <?php
-/* Customer + admin authentication. Customers and admins are separate tables and separate sessions keys. */
+/* Admin authentication (customers don't have accounts: they send reviews with name + email). */
 
 const ADMIN_IDLE_SECONDS     = 30 * 60;      // admin logged out after 30 min without activity
 const ADMIN_MAX_SECONDS      = 12 * 3600;    // and after 12 h no matter what
@@ -47,80 +47,13 @@ function valid_email(string $email): bool
     return mb_strlen($email) <= 190 && filter_var($email, FILTER_VALIDATE_EMAIL) !== false;
 }
 
-/* =========================================================
-   CUSTOMERS
-   ========================================================= */
-function current_user(): ?array
-{
-    static $cache = false;
-    if ($cache !== false) return $cache;
-    $cache = null;
-    if (!empty($_SESSION['uid'])) {
-        $u = q('SELECT * FROM users WHERE id = ?', [(int) $_SESSION['uid']])->fetch();
-        if ($u && $u['status'] === 'active' && (int) $u['session_version'] === (int) ($_SESSION['uver'] ?? -1)) {
-            $cache = $u;
-        } else {
-            unset($_SESSION['uid'], $_SESSION['uver']);
-        }
-    }
-    return $cache;
-}
-
-function login_user(array $u): void
-{
-    session_regenerate_id(true);
-    $_SESSION['uid']  = (int) $u['id'];
-    $_SESSION['uver'] = (int) $u['session_version'];
-    q('UPDATE users SET last_login_at = ? WHERE id = ?', [now(), $u['id']]);
-}
-
 /** After a successful password check, upgrade old hashes silently. */
 function maybe_rehash(string $table, array $row, string $plain): void
 {
-    if (!in_array($table, ['users', 'admins'], true)) return;
+    if ($table !== 'admins') return;
     if (password_needs_rehash($row['password_hash'], defined('PASSWORD_ARGON2ID') ? PASSWORD_ARGON2ID : PASSWORD_DEFAULT)) {
-        q("UPDATE $table SET password_hash = ? WHERE id = ?", [hash_password($plain), $row['id']]);
+        q('UPDATE admins SET password_hash = ? WHERE id = ?', [hash_password($plain), $row['id']]);
     }
-}
-
-function logout_user(): void
-{
-    unset($_SESSION['uid'], $_SESSION['uver']);
-    session_regenerate_id(true);
-}
-
-function require_user(): array
-{
-    $u = current_user();
-    if (!$u) {
-        flash('info', 'Please log in first.');
-        redirect('/account/login?next=' . rawurlencode(strtok($_SERVER['REQUEST_URI'] ?? '/account', '#')));
-    }
-    return $u;
-}
-
-/* one-time tokens for password reset (only the SHA-256 is stored) */
-function token_create(int $userId, string $type, int $ttlSeconds): string
-{
-    $raw = bin2hex(random_bytes(32));
-    q('DELETE FROM user_tokens WHERE user_id = ? AND type = ?', [$userId, $type]);
-    q('INSERT INTO user_tokens (user_id, type, token_hash, expires_at, created_at) VALUES (?,?,?,?,?)',
-      [$userId, $type, hash('sha256', $raw), now($ttlSeconds), now()]);
-    return $raw;
-}
-
-/** Returns the token row (still valid) or null. */
-function token_find(string $raw, string $type): ?array
-{
-    if (!preg_match('/^[a-f0-9]{64}$/', $raw)) return null;
-    $row = q('SELECT * FROM user_tokens WHERE token_hash = ? AND type = ? AND expires_at > ?',
-             [hash('sha256', $raw), $type, now()])->fetch();
-    return $row ?: null;
-}
-
-function token_delete_all(int $userId, string $type): void
-{
-    q('DELETE FROM user_tokens WHERE user_id = ? AND type = ?', [$userId, $type]);
 }
 
 /* =========================================================

@@ -30,6 +30,9 @@ AddType image/avif .avif
   RewriteCond %{THE_REQUEST} \s/+([^\s?]+?)\.(?:html|php)[\s?] [NC]
   RewriteRule ^ /%1 [R=301,L,NE]
 
+  # customer accounts were removed: send old links to the review form
+  RewriteRule ^account(/.*)?$ /review [R=301,L]
+
   # ---- 3. Drop trailing slash on anything that isn't a folder ----
   RewriteCond %{REQUEST_FILENAME} !-d
   RewriteRule ^(.+)/$ /$1 [R=301,L]

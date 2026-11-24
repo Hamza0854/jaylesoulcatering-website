@@ -17,6 +17,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET' && preg_match('#^(.*?)(?:/index)?\.(htm
     header('Location: ' . ($m[1] === '' ? '/' : $m[1]) . ($qs !== '' ? "?$qs" : ''), true, 301);
     exit;
 }
+if (preg_match('#^/account(/|$)#', $uri)) { header('Location: /review', true, 301); exit; }
 if (str_starts_with($uri, '/uploads/') && preg_match('#\.(php\d?|phtml|html?|svg|js)$#i', $uri)) {
     http_response_code(403);
     exit;

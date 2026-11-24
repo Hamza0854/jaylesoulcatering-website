@@ -15,8 +15,7 @@ try {
     [$items, $total, $summary, $counts, $dbError] = [[], 0, ['avg' => 0, 'count' => 0, 'dist' => []], ['all' => 0], true];
 }
 $pages = max(1, (int) ceil($total / PER_PAGE));
-$user  = current_user();
-$writeUrl = '/account/submit';
+$writeUrl = '/review';
 
 page_start('Testimonials & Reviews | Chef Jay LeSoul Catering — Cleveland, OH', 'page-testi', [
     'description' => 'Star ratings, video, photo and written reviews from customers of Chef Jay LeSoul Catering across Greater Cleveland.',
@@ -59,7 +58,7 @@ page_start('Testimonials & Reviews | Chef Jay LeSoul Catering — Cleveland, OH'
             <div class="r-top"><div><?= stars_html(5, 'r-stars') ?><small>Be the first to leave a star rating!</small></div></div>
           <?php endif ?>
           <a href="<?= e($writeUrl) ?>" class="btn-red r-write">Write a Review <svg class="chev"><use href="#chev"/></svg></a>
-          <?php if (!$user): ?><p class="r-note">Free account · every review approved by our team</p><?php endif ?>
+          <p class="r-note">No account needed · every review is approved by our team</p>
         </aside>
       </div>
 

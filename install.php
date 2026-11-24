@@ -1,7 +1,7 @@
 <?php
 /*
  * ONE-TIME INSTALLER  →  https://jaylesoulcatering.com/install?key=YOUR_INSTALL_KEY
- * Creates the database tables, adds the existing video testimonials and the first admin account.
+ * Creates the database tables (with the video testimonials + demo reviews from schema.sql) and the first admin account.
  * It locks itself afterwards (storage/installed.lock). Delete this file once you're done.
  */
 require __DIR__ . '/app/bootstrap.php';
@@ -50,29 +50,7 @@ if (is_post()) {
         q('INSERT INTO admins (name, email, password_hash, created_at) VALUES (?,?,?,?)', [$name, $email, hash_password($pw), now()]);
         $adminId = (int) db()->lastInsertId();
 
-        // 3. existing video testimonials (only if the table is empty)
-        if ((int) q('SELECT COUNT(*) FROM testimonials')->fetchColumn() === 0) {
-            $seed = [
-                ['Private Dining Guest', 'A testimony on how a private dining event can be done', 'private-dinner', 'facebook', 'https://www.facebook.com/reel/1553656299054690/', null],
-                ['Happy Customer', null, null, 'youtube', 'https://www.youtube.com/watch?v=Of20yQSj1rA', null],
-            ];
-            foreach ([36, 35, 34, 33, 32] as $n) {
-                if (is_file(ROOT . "/assets/images/testimonial-video-$n.mp4")) $seed[] = ['Happy Customer', null, null, null, null, "assets/images/testimonial-video-$n.mp4"];
-            }
-            $i = 0;
-            foreach ($seed as [$author, $title, $event, $prov, $url, $file]) {
-                // stagger dates so the order on the page stays as listed
-                q("INSERT INTO testimonials (source, author_name, event_type, title, kind, embed_provider, embed_url, status, featured, created_at, reviewed_at, reviewed_by)
-                   VALUES ('admin', ?, ?, ?, 'video', ?, ?, 'approved', ?, ?, ?, ?)",
-                  [$author, $event, $title, $prov, $url, $i === 0 ? 1 : 0, now(-60 * $i), now(), $adminId]);
-                $tid = (int) db()->lastInsertId();
-                if ($file) {
-                    q("INSERT INTO testimonial_media (testimonial_id, type, path, mime, size, sort) VALUES (?, 'video', ?, 'video/mp4', ?, 0)",
-                      [$tid, $file, filesize(ROOT . '/' . $file)]);
-                }
-                $i++;
-            }
-        }
+        // (the real video testimonials + demo reviews come from schema.sql)
         file_put_contents($lock, 'installed ' . now());
         audit('system', $adminId, 'installed');
         install_page('<h1>All <em>set!</em></h1><ol><li>In <code>app/config.php</code> set <code>install_key</code> back to <code>\'\'</code>.</li>'

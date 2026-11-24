@@ -12,7 +12,7 @@ $videoMb = (int) cfg('uploads.admin_video_max_mb', 60);
 $photoMb = (int) cfg('uploads.photo_max_mb', 5);
 
 $v = [
-    'author_name' => $t['author_name'] ?? '', 'author_location' => $t['author_location'] ?? '',
+    'author_name' => $t['author_name'] ?? '', 'author_email' => $t['author_email'] ?? '', 'author_location' => $t['author_location'] ?? '',
     'event_type' => $t['event_type'] ?? '', 'rating' => (int) ($t['rating'] ?? 0),
     'title' => $t['title'] ?? '', 'body' => $t['body'] ?? '',
     'embed' => $t['embed_url'] ?? '', 'status' => $t['status'] ?? 'approved', 'featured' => (int) ($t['featured'] ?? 0),
@@ -22,7 +22,7 @@ $error = upload_too_big_for_server() ? "The upload is larger than the server all
 if (!$error && is_post()) {
     csrf_check();
     $v = [
-        'author_name' => post_str('author_name', 80), 'author_location' => post_str('author_location', 80),
+        'author_name' => post_str('author_name', 80), 'author_email' => normalize_email(post_str('author_email', 190)), 'author_location' => post_str('author_location', 80),
         'event_type' => post_str('event_type', 40), 'rating' => (int) ($_POST['rating'] ?? 0),
         'title' => post_str('title', 120), 'body' => post_text('body', 5000), 'embed' => post_str('embed', 500),
         'status' => in_array($_POST['status'] ?? '', ['pending', 'approved', 'rejected'], true) ? $_POST['status'] : 'approved',
@@ -33,6 +33,7 @@ if (!$error && is_post()) {
     $saved = false;
     try {
         if ($v['author_name'] === '') throw new UserError('Please enter the customer name (or e.g. “Happy Customer”).');
+        if ($v['author_email'] !== '' && !valid_email($v['author_email'])) throw new UserError('That email address does not look right (or leave it empty).');
         if ($v['rating'] < 0 || $v['rating'] > 5) $v['rating'] = 0;
         if (!isset(EVENT_TYPES[$v['event_type']])) $v['event_type'] = '';
         $embed = $v['embed'] !== '' ? parse_video_link($v['embed']) : null;
@@ -47,16 +48,16 @@ if (!$error && is_post()) {
 
         $pdo = db();
         $pdo->beginTransaction();
-        $vals = [$v['author_name'], $v['author_location'] ?: null, $v['event_type'] ?: null, $v['rating'] ?: null,
+        $vals = [$v['author_name'], $v['author_email'] ?: null, $v['author_location'] ?: null, $v['event_type'] ?: null, $v['rating'] ?: null,
                  $v['title'] ?: null, $v['body'] ?: null, $kind, $embed['provider'] ?? null, $embed['url'] ?? null,
                  $v['status'], $v['featured']];
         if ($t) {
-            q('UPDATE testimonials SET author_name=?, author_location=?, event_type=?, rating=?, title=?, body=?, kind=?,
+            q('UPDATE testimonials SET author_name=?, author_email=?, author_location=?, event_type=?, rating=?, title=?, body=?, kind=?,
                embed_provider=?, embed_url=?, status=?, featured=?, reviewed_at=?, reviewed_by=? WHERE id=?',
               array_merge($vals, [now(), $admin['id'], $id]));
         } else {
-            q("INSERT INTO testimonials (author_name, author_location, event_type, rating, title, body, kind, embed_provider, embed_url,
-               status, featured, source, created_at, reviewed_at, reviewed_by) VALUES (?,?,?,?,?,?,?,?,?,?,?,'admin',?,?,?)",
+            q("INSERT INTO testimonials (author_name, author_email, author_location, event_type, rating, title, body, kind, embed_provider, embed_url,
+               status, featured, source, created_at, reviewed_at, reviewed_by) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,'admin',?,?,?)",
               array_merge($vals, [now(), now(), $admin['id']]));
             $id = (int) $pdo->lastInsertId();
         }
@@ -97,6 +98,7 @@ admin_start($t ? 'Edit testimonial' : 'Add testimonial', $admin, $t ? 'reviews' 
   <?php if ($t): ?><input type="hidden" name="id" value="<?= (int) $t['id'] ?>"><?php endif ?>
 
   <label>Customer name *<input type="text" name="author_name" maxlength="80" required value="<?= e($v['author_name']) ?>"></label>
+  <label>Email (optional, never shown)<input type="email" name="author_email" maxlength="190" value="<?= e($v['author_email']) ?>"></label>
   <label>City / location<input type="text" name="author_location" maxlength="80" value="<?= e($v['author_location']) ?>"></label>
   <label>Event type<select name="event_type"><option value="">—</option>
     <?php foreach (EVENT_TYPES as $k => $label): ?><option value="<?= e($k) ?>"<?= $v['event_type'] === $k ? ' selected' : '' ?>><?= e($label) ?></option><?php endforeach ?></select></label>

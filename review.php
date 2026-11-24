@@ -1,18 +1,21 @@
 <?php
-require __DIR__ . '/../app/bootstrap.php';
-$u = require_user();
+/* Public "Write a Review" form — no account needed: name + email + rating + review (+ photos / video).
+   Every review waits for admin approval. Protected by CSRF, Turnstile, honeypot, timing and rate limits. */
+require __DIR__ . '/app/bootstrap.php';
 
 $maxPhotos = (int) cfg('uploads.max_photos', 3);
 $photoMb   = (int) cfg('uploads.photo_max_mb', 5);
 $videoMb   = (int) cfg('uploads.video_max_mb', 20);
 $errors = [];
-$old = ['rating' => 0, 'title' => '', 'body' => '', 'event_type' => '', 'location' => ''];
+$old = ['name' => '', 'email' => '', 'rating' => 0, 'title' => '', 'body' => '', 'event_type' => '', 'location' => ''];
 
 if (upload_too_big_for_server()) {
     $errors['form'] = "Your files are too large. Photos can be up to {$photoMb} MB each and the video up to {$videoMb} MB.";
 } elseif (is_post()) {
     csrf_check();
     $old = [
+        'name'       => post_str('name', 80),
+        'email'      => normalize_email(post_str('email', 190)),
         'rating'     => (int) ($_POST['rating'] ?? 0),
         'title'      => post_str('title', 120),
         'body'       => post_text('body', 2000),
@@ -23,13 +26,17 @@ if (upload_too_big_for_server()) {
     $videos = files_list('video');
     $stored = [];
     $saved = false;
+    $ipKey = 'review-ip:' . client_ip();
+    $emKey = 'review-em:' . $old['email'];
 
     try {
-        bot_check('submit', 5);
-        if (rate_blocked('submit:' . $u['id'], 3, 86400)) throw new UserError('You can send up to 3 reviews per day. Please try again tomorrow.');
-        $pending = (int) q("SELECT COUNT(*) FROM testimonials WHERE user_id = ? AND status = 'pending'", [$u['id']])->fetchColumn();
-        if ($pending >= 3) throw new UserError('You already have 3 reviews waiting for approval. Please wait until we review them.');
+        bot_check('review', 5);
+        if (rate_blocked($ipKey, 3, 86400) || rate_blocked($emKey, 3, 86400)) {
+            throw new UserError('You can send up to 3 reviews per day. Please try again tomorrow.');
+        }
 
+        if (mb_strlen($old['name']) < 2) $errors['name'] = 'Please enter your name.';
+        if (!valid_email($old['email'])) $errors['email'] = 'Please enter a valid email address.';
         if ($old['rating'] < 1 || $old['rating'] > 5) $errors['rating'] = 'Please choose a star rating.';
         if (mb_strlen($old['body']) < 20) $errors['body'] = 'Please write at least 20 characters.';
         if ($old['event_type'] !== '' && !isset(EVENT_TYPES[$old['event_type']])) $old['event_type'] = '';
@@ -39,15 +46,19 @@ if (upload_too_big_for_server()) {
         if (empty($_POST['consent'])) $errors['consent'] = 'Please confirm this is your own honest review.';
 
         if (!$errors) {
-            // store files first (private folder); if anything fails, clean up and show the error
+            if (email_blocked($old['email'])) throw new UserError('Sorry, we can’t accept reviews from this email address.');
+            $pending = (int) q("SELECT COUNT(*) FROM testimonials WHERE author_email = ? AND status = 'pending'", [$old['email']])->fetchColumn();
+            if ($pending >= 3) throw new UserError('You already have 3 reviews waiting for approval. Please wait until we review them.');
+
+            // store files first (private folder); if anything fails they are cleaned up below
             foreach ($photos as $f) $stored[] = ['type' => 'image'] + store_photo($f, false);
             foreach ($videos as $f) $stored[] = ['type' => 'video'] + store_video($f, false, $videoMb);
 
             $pdo = db();
             $pdo->beginTransaction();
-            q("INSERT INTO testimonials (user_id, source, author_name, author_location, event_type, rating, title, body, kind, status, created_at)
-               VALUES (?, 'customer', ?, ?, ?, ?, ?, ?, ?, 'pending', ?)", [
-                $u['id'], $u['name'], $old['location'] ?: null, $old['event_type'] ?: null, $old['rating'],
+            q("INSERT INTO testimonials (source, author_name, author_email, author_location, event_type, rating, title, body, kind, status, created_at)
+               VALUES ('customer', ?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?)", [
+                $old['name'], $old['email'], $old['location'] ?: null, $old['event_type'] ?: null, $old['rating'],
                 $old['title'] ?: null, $old['body'], kind_for(null, array_column($stored, 'type')), now(),
             ]);
             $tid = (int) $pdo->lastInsertId();
@@ -57,16 +68,17 @@ if (upload_too_big_for_server()) {
             }
             $pdo->commit();
             $saved = true;
-            rate_hit('submit:' . $u['id'], 86400);
-            audit('user', (int) $u['id'], 'testimonial_submit', "#$tid");
+            rate_hit($ipKey, 86400);
+            rate_hit($emKey, 86400);
+            audit('visitor', null, 'testimonial_submit', "#$tid " . $old['email']);
 
             if ($to = cfg('mail.admin_notify')) {
                 send_mail($to, "New {$old['rating']}★ review waiting for approval",
-                    "{$u['name']} ({$u['email']}) sent a new review:\n\n" . ($old['title'] ? "{$old['title']}\n" : '') . "{$old['body']}\n\n"
+                    "{$old['name']} ({$old['email']}) sent a new review:\n\n" . ($old['title'] ? "{$old['title']}\n" : '') . "{$old['body']}\n\n"
                     . count($stored) . " attachment(s)\n\nApprove or reject it here:\n" . rtrim(cfg('site_url'), '/') . '/admin');
             }
-            flash('success', 'Thank you! Your review was sent. It will appear on the site as soon as our team approves it.');
-            redirect('/account');
+            $_SESSION['review_sent'] = $old['name'];
+            redirect('/review?sent=1');
         }
     } catch (UserError $e) {
         $errors['form'] = $e->getMessage();
@@ -78,14 +90,26 @@ if (upload_too_big_for_server()) {
     }
 }
 
-page_start('Write a Review | Chef Jay LeSoul Catering', 'page-app', ['noindex' => true, 'captcha' => true]);
+$sentName = isset($_GET['sent']) ? ($_SESSION['review_sent'] ?? null) : null;
+unset($_SESSION['review_sent']);
+
+page_start('Write a Review | Chef Jay LeSoul Catering', 'page-app', [
+    'description' => 'Fed by Chef Jay LeSoul? Leave a star rating, your review, photos or a short video.',
+    'captcha' => true, 'active' => '/testimonials',
+]);
 app_hero('Write a Review', 'SHARE YOUR <em>EXPERIENCE</em>', 'Real love. Real flavor.');
 ?>
 <section class="app-sec">
   <div class="app-card app-card-wide">
-    <?= flashes_html() ?>
+  <?php if ($sentName): ?>
+    <div class="app-msg">
+      <div class="alert alert-success" role="status">Thank you, <?= e($sentName) ?>! Your review was sent.</div>
+      <p>Our team checks every review before it goes live. You'll get an email at the address you gave us as soon as it's published.</p>
+      <p><a href="/testimonials">Read what others are saying</a> · <a href="/review">Write another review</a></p>
+    </div>
+  <?php else: ?>
     <?php if (!empty($errors['form'])): ?><div class="alert alert-error" role="alert"><?= e($errors['form']) ?></div><?php endif ?>
-    <form method="post" action="/account/submit" class="app-form" enctype="multipart/form-data" novalidate
+    <form method="post" action="/review" class="app-form" enctype="multipart/form-data" novalidate
           data-max-photos="<?= $maxPhotos ?>" data-photo-mb="<?= $photoMb ?>" data-video-mb="<?= $videoMb ?>">
       <?= csrf_field() ?>
 
@@ -99,6 +123,13 @@ app_hero('Write a Review', 'SHARE YOUR <em>EXPERIENCE</em>', 'Real love. Real fl
         </div>
         <?php if (isset($errors['rating'])): ?><small class="err"><?= e($errors['rating']) ?></small><?php endif ?>
       </fieldset>
+
+      <div class="two-col">
+        <div class="field<?= isset($errors['name']) ? ' error' : '' ?>" data-error="<?= e($errors['name'] ?? '') ?>">
+          <input type="text" name="name" id="name" placeholder=" " maxlength="80" autocomplete="name" required value="<?= e($old['name']) ?>"><label for="name">Your Name * (shown on your review)</label></div>
+        <div class="field<?= isset($errors['email']) ? ' error' : '' ?>" data-error="<?= e($errors['email'] ?? '') ?>">
+          <input type="email" name="email" id="email" placeholder=" " maxlength="190" autocomplete="email" required value="<?= e($old['email']) ?>"><label for="email">Email * (never shown)</label></div>
+      </div>
 
       <div class="field"><input type="text" name="title" id="title" placeholder=" " maxlength="120" value="<?= e($old['title']) ?>"><label for="title">Review title (optional) — e.g. “Best oxtails in Cleveland!”</label></div>
 
@@ -132,10 +163,11 @@ app_hero('Write a Review', 'SHARE YOUR <em>EXPERIENCE</em>', 'Real love. Real fl
       <label class="check<?= isset($errors['consent']) ? ' error' : '' ?>"><input type="checkbox" name="consent" value="1" required>
         <span>This is my own honest experience, and Chef Jay LeSoul Catering may show my review, name, photos and video on its website and social media.</span></label>
 
-      <?= bot_fields('submit') ?>
+      <?= bot_fields('review') ?>
       <button type="submit" class="btn-red btn-send">Send My Review <svg class="chev"><use href="#chev"/></svg></button>
-      <p class="form-note">Posting as <strong><?= e($u['name']) ?></strong>. Your email is never shown. Reviews appear after our team approves them.</p>
+      <p class="form-note">Your email is never shown publicly. Reviews appear after our team approves them.</p>
     </form>
+  <?php endif ?>
   </div>
 </section>
 <?php page_end();
