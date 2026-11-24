@@ -143,8 +143,8 @@
   .r-bars i{height:8px}
   .r-write{height:46px;margin-top:14px;font-size:15px;border-radius:6px}
   .r-note{font-size:11.5px}
-  .t-stars{font-size:17px}.t-title{font-size:16px}
-  .t-thumbs a{width:58px;height:58px}
+  .t-stars{font-size:13px}.t-title{font-size:13px}
+  .t-thumbs a{width:40px;height:40px}
   .t-empty{font-size:15px;padding:24px 0}
   .pager a{min-width:38px;height:38px;font-size:14px}
 
@@ -178,4 +178,4 @@
 .t-fb:hover svg{transform:scale(1.1)}
 .t-fb b{margin-top:calc(8*var(--u));font-family:var(--f-disp);font-weight:400;font-size:calc(24*var(--u));color:var(--cream)}
 .t-fb small{font-family:var(--f-script);font-size:calc(24*var(--u));color:var(--red-hi)}
-@media (max-width:767px){.t-fb svg{width:64px;height:64px;padding:17px}.t-fb b{font-size:22px}.t-fb small{font-size:22px}}
+@media (max-width:767px){.t-fb svg{width:46px;height:46px;padding:12px}.t-fb b{font-size:16px}.t-fb small{font-size:16px}}

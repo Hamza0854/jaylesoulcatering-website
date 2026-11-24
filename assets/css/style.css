@@ -1016,3 +1016,23 @@ body{color:var(--txt)}
 .t-card:has(.t-media):hover{transform:none}
 /* filters can be links (testimonials page) */
 a.filter{display:inline-flex;align-items:center}
+
+/* testimonials on phones: 2 cards per row, smaller cards */
+@media (max-width:767px){
+  .t-grid,.testi-all .t-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+  .t-card.t-cta{grid-column:1/-1}
+  .t-media.vert{max-height:none}
+  .t-kind{padding:3px 7px;font-size:8.5px}
+  .t-card::after{width:20px;height:20px}
+  .t-body{padding:10px 10px 12px}
+  .t-body p{font-size:12.5px;line-height:1.5}
+  .t-src{font-size:10.5px;gap:5px;margin-top:6px;letter-spacing:.05em}
+  .t-stars{font-size:13px}
+  .t-title{font-size:13px}
+  .t-who{gap:8px;margin-top:10px;padding-top:8px}
+  .t-av{width:30px;height:30px;font-size:13px}
+  .t-who b{font-size:11.5px}.t-who small{font-size:10.5px}
+  .t-verified{display:none}
+  .t-thumbs a{width:40px;height:40px}
+  .t-fb svg{width:46px;height:46px;padding:12px}.t-fb b{font-size:16px}.t-fb small{font-size:16px}
+}
